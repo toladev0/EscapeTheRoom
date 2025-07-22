@@ -12,6 +12,21 @@ public class AudioManagement : MonoBehaviour
     public AudioClip background;
     public AudioClip click;
 
+    //public static AudioManagement instance;
+
+    //private void Awake()
+    //{
+    //    if (instance == null)
+    //    {
+    //        instance = this;
+    //        DontDestroyOnLoad(gameObject);
+    //    }
+    //    else
+    //    {
+    //        Destroy(gameObject);
+    //    }
+    //}
+
     private void Start()
     {
         musicSource.clip = background;
