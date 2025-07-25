@@ -1,12 +1,19 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
-public class PauseMenuManagement : MonoBehaviour
+public class PauseMenuManagerment : MonoBehaviour
 {
-    public void Back()
+    // Reference to the UI panel that will be shown when the game is paused
+    public GameObject pausePanel;
+
+    void Update()
     {
-        SceneManager.LoadScene("MainMenu");
+        // Check if the Escape key is pressed
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            // Show the pause panel
+            pausePanel.SetActive(true);
+        }
     }
 }
