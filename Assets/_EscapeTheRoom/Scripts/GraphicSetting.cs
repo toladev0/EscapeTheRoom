@@ -1,60 +1,109 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
-// This script handles the graphics settings such as resolution, quality, and fullscreen
 public class GraphicSetting : MonoBehaviour
 {
-    public TMPro.TMP_Dropdown resolutionDropdown;  // Dropdown for selecting resolution
-    Resolution[] resolutions;                      // Array to store available screen resolutions
+    // UI elements for resolution, fullscreen, and quality settings
+    public TMP_Dropdown resolutionDropdown;
+    public Toggle fullscreenToggle;
+    public TMP_Dropdown qualityDropdown;
 
-    private void Start()
+    // Available screen resolutions
+    private Resolution[] allResolutions;
+    private List<Resolution> uniqueResolutions = new List<Resolution>();
+
+    // PlayerPrefs keys for saving settings
+    private const string PREF_RES_INDEX = "ResolutionIndex";
+    private const string PREF_QUALITY_INDEX = "QualityIndex";
+    private const string PREF_FULLSCREEN = "FullScreen";
+
+    void Start()
     {
-        if (resolutionDropdown != null)
+        // Initialize resolution dropdown and load saved settings
+        SetupResolutions();
+        LoadSettings();
+    }
+
+    // Sets up the resolution dropdown list with unique values
+    private void SetupResolutions()
+    {
+        allResolutions = Screen.resolutions;
+        HashSet<string> resolutionSet = new HashSet<string>(); // To store unique resolution strings
+        List<string> options = new List<string>(); // Dropdown options
+
+        int currentResolutionIndex = 0;
+
+        for (int i = 0; i < allResolutions.Length; i++)
         {
-            resolutions = Screen.resolutions;      // Get all supported screen resolutions
-            resolutionDropdown.ClearOptions();     // Clear existing options in the dropdown
-            List<string> options = new List<string>();
+            // Create a string key for comparison (e.g., "1920x1080")
+            string resKey = $"{allResolutions[i].width}x{allResolutions[i].height}";
 
-            int CurrenResolutionIndex = 0;         // Index to store the current screen resolution
-            for (int i = 0; i < resolutions.Length; i++)
+            // Add only unique resolutions
+            if (!resolutionSet.Contains(resKey))
             {
-                // Format each resolution as "width x height"
-                string option = resolutions[i].width + " x " + resolutions[i].height;
-                options.Add(option);
+                resolutionSet.Add(resKey);
+                uniqueResolutions.Add(allResolutions[i]);
+                options.Add($"{allResolutions[i].width} x {allResolutions[i].height}");
 
-                // Check if this resolution is the current screen resolution
-                if (resolutions[i].width == Screen.currentResolution.width &&
-                    resolutions[i].height == Screen.currentResolution.height)
+                // Save the index of the current screen resolution
+                if (allResolutions[i].width == Screen.currentResolution.width &&
+                    allResolutions[i].height == Screen.currentResolution.height)
                 {
-                    CurrenResolutionIndex = i;
+                    currentResolutionIndex = uniqueResolutions.Count - 1;
                 }
             }
-
-            // Add resolution options to the dropdown
-            resolutionDropdown.AddOptions(options);
-            resolutionDropdown.value = CurrenResolutionIndex;   // Set current resolution as selected
-            resolutionDropdown.RefreshShownValue();             // Refresh to show the selected value
         }
+
+        // Update dropdown UI with resolution options
+        resolutionDropdown.ClearOptions();
+        resolutionDropdown.AddOptions(options);
+
+        // Set the saved or current resolution
+        resolutionDropdown.onValueChanged.AddListener(SetResolution);
+        resolutionDropdown.value = PlayerPrefs.GetInt(PREF_RES_INDEX, currentResolutionIndex);
+        resolutionDropdown.RefreshShownValue();
     }
 
-    // Change the screen resolution based on the selected dropdown index
+    // Called when user selects a resolution from dropdown
     public void SetResolution(int resolutionIndex)
     {
-        Resolution resolution = resolutions[resolutionIndex];
+        Resolution resolution = uniqueResolutions[resolutionIndex];
         Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
+        PlayerPrefs.SetInt(PREF_RES_INDEX, resolutionIndex);
     }
 
-    // Set the quality level (Low, Medium, High, etc.)
+    // Called when user changes the quality setting
     public void SetQuality(int qualityIndex)
     {
         QualitySettings.SetQualityLevel(qualityIndex);
+        PlayerPrefs.SetInt(PREF_QUALITY_INDEX, qualityIndex);
     }
 
-    // Enable or disable fullscreen mode
+    // Called when user toggles fullscreen mode
     public void SetFullScreen(bool isFullscreen)
     {
         Screen.fullScreen = isFullscreen;
+        PlayerPrefs.SetInt(PREF_FULLSCREEN, isFullscreen ? 1 : 0);
+    }
+
+    // Loads saved resolution, quality, and fullscreen settings
+    private void LoadSettings()
+    {
+        // Load fullscreen setting
+        bool isFullscreen = PlayerPrefs.GetInt(PREF_FULLSCREEN, Screen.fullScreen ? 1 : 0) == 1;
+        Screen.fullScreen = isFullscreen;
+        if (fullscreenToggle != null)
+            fullscreenToggle.isOn = isFullscreen;
+
+        // Load quality setting
+        int qualityIndex = PlayerPrefs.GetInt(PREF_QUALITY_INDEX, QualitySettings.GetQualityLevel());
+        QualitySettings.SetQualityLevel(qualityIndex);
+        if (qualityDropdown != null)
+        {
+            qualityDropdown.value = qualityIndex;
+            qualityDropdown.RefreshShownValue();
+        }
     }
 }
