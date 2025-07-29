@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections;
 
 // This script hides and locks the mouse cursor, useful for FPS-style games
 public class HideLockMouse : MonoBehaviour

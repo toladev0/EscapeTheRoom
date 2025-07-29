@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 // This script manages the main menu actions
 public class MainMenuManagement : MonoBehaviour

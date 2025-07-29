@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using TMPro;
 
 // This script shows a loading screen before switching to a new scene
 public class LoadingScreen : MonoBehaviour
