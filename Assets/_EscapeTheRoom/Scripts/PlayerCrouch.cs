@@ -32,7 +32,7 @@ public class PlayerCrouch : MonoBehaviour
         originalCenter = characterController.center;
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         // Check if Left Ctrl key is held down using the new Input System
         if (Keyboard.current.leftCtrlKey.isPressed)
