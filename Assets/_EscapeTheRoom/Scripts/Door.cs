@@ -5,6 +5,7 @@ public class Door : MonoBehaviour, IInteractable
 {
     // Tracks whether the door is currently open or closed
     private bool IsDoorOpen = false;
+    public bool isNagative;
 
     // Reference to the AudioSource component used to play sound effects
     [SerializeField] AudioSource SFXSource;
@@ -22,13 +23,19 @@ public class Door : MonoBehaviour, IInteractable
         // If the door is closed, play the opening animation and mark it as open
         if (!IsDoorOpen)
         {
-            ani.Play("DoorOpen");
+            if(!isNagative)
+                ani.Play("DoorOpen");
+            else
+                ani.Play("DoorOpenNgative");
             IsDoorOpen = true;
         }
         // If the door is open, play the closing animation and mark it as closed
         else
         {
-            ani.Play("DoorClose");
+            if(!isNagative)
+                ani.Play("DoorClose");
+            else
+                ani.Play("DoorCloseNgative");
             IsDoorOpen = false;
         }
     }

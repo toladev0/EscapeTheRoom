@@ -1,55 +1,62 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Cinemachine;
 
 public class GraphicSetting : MonoBehaviour
 {
-    // UI elements for user settings
-    public TMP_Dropdown resolutionDropdown;   // Dropdown to choose screen resolution
-    public Toggle fullscreenToggle;           // Toggle to enable/disable fullscreen
-    public TMP_Dropdown qualityDropdown;      // Dropdown to select graphic quality level
+    public TMP_Dropdown resolutionDropdown;
+    public TMP_Dropdown fullscreenDropdown;
+    public TMP_Dropdown qualityDropdown;
+    public TMP_Dropdown vsyncDropdown;
+    public Slider fovSlider;
+    public TextMeshProUGUI fovValueText;
 
-    // Array of all system-supported resolutions
+    public CinemachineVirtualCamera virtualCamera;
+
     private Resolution[] allResolutions;
-
-    // List of unique screen resolutions for dropdown
     private List<Resolution> uniqueResolutions = new List<Resolution>();
 
-    // PlayerPrefs keys to save and retrieve user settings
-    private const string PREF_RES_INDEX = "ResolutionIndex";     // Key for resolution index
-    private const string PREF_QUALITY_INDEX = "QualityIndex";    // Key for quality level
-    private const string PREF_FULLSCREEN = "FullScreen";         // Key for fullscreen mode
+    private const string PREF_RES_INDEX = "ResolutionIndex";
+    private const string PREF_QUALITY_INDEX = "QualityIndex";
+    private const string PREF_FULLSCREEN = "FullScreen";
+    private const string PREF_VSYNC = "VSync";
+    private const string PREF_FOV = "FieldOfView";
+
+    private const float FOV_MIN = 40f;
+    private const float FOV_MAX = 110f;
+    private const float FOV_DEFAULT = 48f;
 
     void Start()
     {
-        // Set up resolution options and load saved graphic settings
         SetupResolutions();
+        SetupFullscreenOptions();
+        SetupVSyncOptions();
+        SetupFOVSlider();
         LoadSettings();
     }
 
-    // Populates the resolution dropdown with unique screen resolutions
+    // =================== RESOLUTION ===================
+
     private void SetupResolutions()
     {
-        allResolutions = Screen.resolutions; // Get all available resolutions
-        HashSet<string> resolutionSet = new HashSet<string>(); // To filter duplicates
-        List<string> options = new List<string>(); // Dropdown text options
+        allResolutions = Screen.resolutions;
+        HashSet<string> resolutionSet = new HashSet<string>();
+        List<string> options = new List<string>();
 
-        int currentResolutionIndex = 0; // Index of the current screen resolution
+        int currentResolutionIndex = 0;
 
         for (int i = 0; i < allResolutions.Length; i++)
         {
-            // Create string for resolution (e.g., "1920x1080")
             string resKey = $"{allResolutions[i].width}x{allResolutions[i].height}";
 
-            // Add only if it's not already in the list
             if (!resolutionSet.Contains(resKey))
             {
-                resolutionSet.Add(resKey); // Mark as added
-                uniqueResolutions.Add(allResolutions[i]); // Add to the actual list
-                options.Add($"{allResolutions[i].width} x {allResolutions[i].height}"); // Add option to dropdown
+                resolutionSet.Add(resKey);
+                uniqueResolutions.Add(allResolutions[i]);
+                options.Add($"{allResolutions[i].width} x {allResolutions[i].height}");
 
-                // If it's the current screen resolution, save the index
                 if (allResolutions[i].width == Screen.currentResolution.width &&
                     allResolutions[i].height == Screen.currentResolution.height)
                 {
@@ -58,54 +65,139 @@ public class GraphicSetting : MonoBehaviour
             }
         }
 
-        // Clear existing options in dropdown and add new ones
         resolutionDropdown.ClearOptions();
         resolutionDropdown.AddOptions(options);
-
-        // Set the dropdown value to the saved resolution or default
-        resolutionDropdown.onValueChanged.AddListener(SetResolution); // Link callback
-        resolutionDropdown.value = PlayerPrefs.GetInt(PREF_RES_INDEX, currentResolutionIndex); // Set saved value
-        resolutionDropdown.RefreshShownValue(); // Refresh UI
+        resolutionDropdown.onValueChanged.AddListener(SetResolution);
+        resolutionDropdown.value = PlayerPrefs.GetInt(PREF_RES_INDEX, currentResolutionIndex);
+        resolutionDropdown.RefreshShownValue();
     }
 
-    // Called when resolution dropdown value changes
     public void SetResolution(int resolutionIndex)
     {
         Resolution resolution = uniqueResolutions[resolutionIndex];
-        Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen); // Apply resolution
-        PlayerPrefs.SetInt(PREF_RES_INDEX, resolutionIndex); // Save setting
+        Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
+        PlayerPrefs.SetInt(PREF_RES_INDEX, resolutionIndex);
     }
 
-    // Called when quality dropdown value changes
+    // =================== FULLSCREEN ===================
+
+    private void SetupFullscreenOptions()
+    {
+        if (fullscreenDropdown != null)
+        {
+            List<string> options = new List<string> { "Windowed", "Fullscreen" };
+            fullscreenDropdown.ClearOptions();
+            fullscreenDropdown.AddOptions(options);
+            fullscreenDropdown.onValueChanged.AddListener(SetFullScreen);
+        }
+    }
+
+    public void SetFullScreen(int modeIndex)
+    {
+        bool isFullscreen = (modeIndex == 1);
+        Screen.fullScreen = isFullscreen;
+        PlayerPrefs.SetInt(PREF_FULLSCREEN, isFullscreen ? 1 : 0);
+    }
+
+    // =================== QUALITY ===================
+
     public void SetQuality(int qualityIndex)
     {
-        QualitySettings.SetQualityLevel(qualityIndex); // Apply quality level
-        PlayerPrefs.SetInt(PREF_QUALITY_INDEX, qualityIndex); // Save setting
+        QualitySettings.SetQualityLevel(qualityIndex);
+        PlayerPrefs.SetInt(PREF_QUALITY_INDEX, qualityIndex);
     }
 
-    // Called when fullscreen toggle is changed
-    public void SetFullScreen(bool isFullscreen)
+    // =================== V-SYNC ===================
+
+    private void SetupVSyncOptions()
     {
-        Screen.fullScreen = isFullscreen; // Apply fullscreen mode
-        PlayerPrefs.SetInt(PREF_FULLSCREEN, isFullscreen ? 1 : 0); // Save setting
+        if (vsyncDropdown != null)
+        {
+            List<string> options = new List<string> { "Disable", "Enable" };
+            vsyncDropdown.ClearOptions();
+            vsyncDropdown.AddOptions(options);
+            vsyncDropdown.onValueChanged.AddListener(SetVSync);
+        }
     }
 
-    // Loads settings from PlayerPrefs and applies them
+    public void SetVSync(int vsyncIndex)
+    {
+        QualitySettings.vSyncCount = vsyncIndex;
+        PlayerPrefs.SetInt(PREF_VSYNC, vsyncIndex);
+    }
+
+    // =================== FOV ===================
+
+    private void SetupFOVSlider()
+    {
+        if (fovSlider != null)
+        {
+            fovSlider.minValue = FOV_MIN;
+            fovSlider.maxValue = FOV_MAX;
+            fovSlider.wholeNumbers = true;
+
+            // Prevent triggering SetFOV too early
+            fovSlider.onValueChanged.RemoveAllListeners();
+
+            // Load saved FOV or default
+            float savedFOV = PlayerPrefs.GetFloat(PREF_FOV, FOV_DEFAULT);
+
+            // Apply saved value BEFORE adding listener
+            fovSlider.value = savedFOV;
+
+            if (fovValueText != null)
+                fovValueText.text = $"{savedFOV:F0}";
+
+            if (virtualCamera != null)
+                virtualCamera.m_Lens.FieldOfView = savedFOV;
+
+            // Now add the listener
+            fovSlider.onValueChanged.AddListener(SetFOV);
+        }
+    }
+
+    public void SetFOV(float fovValue)
+    {
+        PlayerPrefs.SetFloat(PREF_FOV, fovValue);
+
+        if (virtualCamera != null)
+            virtualCamera.m_Lens.FieldOfView = fovValue;
+
+        if (fovValueText != null)
+            fovValueText.text = $"{fovValue:F0}";
+    }
+
+    // =================== LOAD SETTINGS ===================
+
     private void LoadSettings()
     {
-        // Load and apply fullscreen mode
+        // Fullscreen
         bool isFullscreen = PlayerPrefs.GetInt(PREF_FULLSCREEN, Screen.fullScreen ? 1 : 0) == 1;
         Screen.fullScreen = isFullscreen;
-        if (fullscreenToggle != null)
-            fullscreenToggle.isOn = isFullscreen;
+        if (fullscreenDropdown != null)
+        {
+            fullscreenDropdown.value = isFullscreen ? 1 : 0;
+            fullscreenDropdown.RefreshShownValue();
+        }
 
-        // Load and apply quality setting
+        // Quality
         int qualityIndex = PlayerPrefs.GetInt(PREF_QUALITY_INDEX, QualitySettings.GetQualityLevel());
         QualitySettings.SetQualityLevel(qualityIndex);
         if (qualityDropdown != null)
         {
             qualityDropdown.value = qualityIndex;
-            qualityDropdown.RefreshShownValue(); // Update UI
+            qualityDropdown.RefreshShownValue();
         }
+
+        // V-Sync
+        int vsyncIndex = PlayerPrefs.GetInt(PREF_VSYNC, QualitySettings.vSyncCount);
+        QualitySettings.vSyncCount = vsyncIndex;
+        if (vsyncDropdown != null)
+        {
+            vsyncDropdown.value = vsyncIndex;
+            vsyncDropdown.RefreshShownValue();
+        }
+
+        // FOV already handled in SetupFOVSlider()
     }
 }
